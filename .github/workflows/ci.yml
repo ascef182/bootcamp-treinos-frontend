@@ -1,0 +1,43 @@
+name: CI
+
+# Validates every push and pull request: smoke test + production build.
+# The build only needs syntactically valid URLs — no real API/DB connection
+# happens at build time, these are the same values used in production.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.18.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Build
+        run: pnpm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://api.gymateai.caza-tech.com
+          NEXT_PUBLIC_BASE_URL: https://gymateai.caza-tech.com
+          NEXTAUTH_URL: https://gymateai.caza-tech.com
